@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Broadcast File Creative Module - Updated</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .hidden { display: none; }
+    label { display: block; margin: 10px 0 5px; }
+    input, select { padding: 5px; width: 300px; max-width: 100%; }
+    button { padding: 8px 12px; margin-top: 10px; }
+    .error { color: red; margin-top: 5px; }
+    .success { color: green; }
+    .suggestions { border: 1px solid #ccc; max-height: 100px; overflow-y: auto; background: #fff; width: 300px; }
+    .suggestion-item { padding: 5px; cursor: pointer; }
+    .suggestion-item:hover { background: #eee; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  </style>
+</head>
+<body>
+
+  <h1>Broadcast File Creative Module</h1>
+
+  <!-- Section 1: Advertiser Search -->
+  <div id="advertiser-search-section">
+    <h2>Search Creative by Advertiser</h2>
+    <label for="searchAdvertiser">Advertiser:</label>
+    <input type="text" id="searchAdvertiser" placeholder="Type to search..." autocomplete="off">
+    <div id="searchAdvertiserSuggestions" class="suggestions hidden"></div>
+    <button id="searchButton">Search Creative</button>
+    <div id="searchError" class="error"></div>
+  </div>
+
+  <!-- Section 2: Search Results -->
+  <div id="results-section" class="hidden">
+    <h2>Search Results</h2>
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>Select</th>
+          <th>HouseId</th>
+          <th>Title</th>
+          <th>Duration</th>
+          <th>Product</th>
+          <th>ISCI</th>
+          <th>Industry</th>
+          <th>Sub-Industry</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody">
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 3: Processing Options -->
+  <div id="processing-options-section" class="hidden">
+    <h2>Processing Options</h2>
+    <!-- Server Endpoint as Multiple Selection -->
+    <label for="serverEndpoint">Server Endpoint:</label>
+    <select id="serverEndpoint" multiple required>
+      <option value="FW">FW</option>
+      <option value="Cadent">Cadent</option>
+      <option value="GAM">GAM</option>
+      <option value="Reogers">Reogers</option>
+      <option value="Telus">Telus</option>
+      <option value="ALL">ALL</option>
+    </select>
+
+    <button id="processButton">Process Selected Creative</button>
+  </div>
+
+  <!-- Section 4: Confirmation Message -->
+  <div id="confirmation" class="hidden">
+    <h2>Processing Initiated</h2>
+    <p id="confirmationMessage"></p>
+  </div>
+
+  <script>
+    /***** Simulated Data *****/
+    // Advertiser data for suggestions
+    const advertisers = ["Advertiser A", "Advertiser B", "Advertiser C", "Alpha Advertising", "Beta Media"];
+
+    // Simulated creative data from IBMS DB
+    const creativeData = [
+      { advertiser: "Advertiser A", houseId: "H001", title: "Creative A1", duration: "30s", product: "Product A", isci: "ISCI-A1" },
+      { advertiser: "Advertiser A", houseId: "H002", title: "Creative A2", duration: "45s", product: "Product A", isci: "ISCI-A2" },
+      { advertiser: "Advertiser B", houseId: "H003", title: "Creative B1", duration: "60s", product: "Product B", isci: "ISCI-B1" },
+      { advertiser: "Advertiser C", houseId: "H004", title: "Creative C1", duration: "30s", product: "Product C", isci: "ISCI-C1" }
+    ];
+
+    // Sub-industry options for each industry
+    const subIndustryOptions = {
+      "FW": ["FW Option 1", "FW Option 2", "FW Creative"],
+      "Cadent": ["Cadent Option A", "Cadent Option B", "Cadent Media"]
+    };
+
+    /***** Utility: Render Suggestions *****/
+    function renderSuggestions(matches, container, inputElement) {
+      container.innerHTML = "";
+      if (matches.length === 0 || inputElement.value.trim() === "") {
+        container.classList.add("hidden");
+        return;
+      }
+      matches.forEach(match => {
+        const div = document.createElement("div");
+        div.textContent = match;
+        div.classList.add("suggestion-item");
+        div.addEventListener("click", function() {
+          inputElement.value = match;
+          container.classList.add("hidden");
+        });
+        container.appendChild(div);
+      });
+      container.classList.remove("hidden");
+    }
+
+    /***** Advertiser Search Suggestions *****/
+    const searchAdvertiserInput = document.getElementById("searchAdvertiser");
+    const searchAdvertiserSuggestions = document.getElementById("searchAdvertiserSuggestions");
+
+    searchAdvertiserInput.addEventListener("input", function() {
+      const query = searchAdvertiserInput.value.toLowerCase();
+      const matches = advertisers.filter(ad => ad.toLowerCase().includes(query));
+      renderSuggestions(matches, searchAdvertiserSuggestions, searchAdvertiserInput);
+    });
+
+    /***** Search Creative by Advertiser *****/
+    const searchButton = document.getElementById("searchButton");
+    const resultsSection = document.getElementById("results-section");
+    const resultsBody = document.getElementById("resultsBody");
+    const searchError = document.getElementById("searchError");
+
+    searchButton.addEventListener("click", function() {
+      const advertiserQuery = searchAdvertiserInput.value.trim();
+      if (!advertiserQuery) {
+        searchError.textContent = "Please enter an advertiser to search.";
+        return;
+      }
+      searchError.textContent = "";
+      // Filter creativeData by advertiser (case-insensitive)
+      const results = creativeData.filter(item => item.advertiser.toLowerCase() === advertiserQuery.toLowerCase());
+      if (results.length === 0) {
+        searchError.textContent = "No creative found for the selected advertiser.";
+        resultsSection.classList.add("hidden");
+        return;
+      }
+      // Build results table with additional columns for Industry and Sub-Industry
+      resultsBody.innerHTML = "";
+      results.forEach((item, index) => {
+        const row = document.createElement("tr");
+        // Checkbox cell for selection
+        const selectCell = document.createElement("td");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        selectCell.appendChild(checkbox);
+        row.appendChild(selectCell);
+        // HouseId
+        const houseIdCell = document.createElement("td");
+        houseIdCell.textContent = item.houseId;
+        row.appendChild(houseIdCell);
+        // Title
+        const titleCell = document.createElement("td");
+        titleCell.textContent = item.title;
+        row.appendChild(titleCell);
+        // Duration
+        const durationCell = document.createElement("td");
+        durationCell.textContent = item.duration;
+        row.appendChild(durationCell);
+        // Product
+        const productCell = document.createElement("td");
+        productCell.textContent = item.product;
+        row.appendChild(productCell);
+        // ISCI
+        const isciCell = document.createElement("td");
+        isciCell.textContent = item.isci;
+        row.appendChild(isciCell);
+        // Industry cell with dropdown (per row)
+        const industryCell = document.createElement("td");
+        const industrySelect = document.createElement("select");
+        industrySelect.innerHTML = `<option value="">--Select Industry--</option>
+                                    <option value="Cadent">Cadent</option>
+                                    <option value="FW">FW</option>`;
+        industryCell.appendChild(industrySelect);
+        row.appendChild(industryCell);
+        // Sub-Industry cell (dynamic, per row)
+        const subIndustryCell = document.createElement("td");
+        const subIndustryInput = document.createElement("input");
+        subIndustryInput.type = "text";
+        subIndustryInput.placeholder = "Type to search...";
+        subIndustryInput.style.display = "none"; // hidden by default
+        const subIndustrySug = document.createElement("div");
+        subIndustrySug.className = "suggestions hidden";
+        subIndustryCell.appendChild(subIndustryInput);
+        subIndustryCell.appendChild(subIndustrySug);
+        row.appendChild(subIndustryCell);
+
+        // Event listener for per-row Industry selection:
+        industrySelect.addEventListener("change", function() {
+          if (industrySelect.value === "FW" || industrySelect.value === "Cadent") {
+            subIndustryInput.style.display = "block";
+          } else {
+            subIndustryInput.style.display = "none";
+            subIndustryInput.value = "";
+            subIndustrySug.classList.add("hidden");
+          }
+        });
+
+        // Event listener for per-row Sub-Industry input:
+        subIndustryInput.addEventListener("input", function() {
+          const selectedIndustry = industrySelect.value;
+          if (!selectedIndustry) return;
+          const options = subIndustryOptions[selectedIndustry] || [];
+          const query = subIndustryInput.value.toLowerCase();
+          const matches = options.filter(opt => opt.toLowerCase().includes(query));
+          renderSuggestions(matches, subIndustrySug, subIndustryInput);
+        });
+
+        resultsBody.appendChild(row);
+      });
+      resultsSection.classList.remove("hidden");
+      // Show processing options section
+      document.getElementById("processing-options-section").classList.remove("hidden");
+    });
+
+    /***** Process Selected Creative *****/
+    const processButton = document.getElementById("processButton");
+    const confirmation = document.getElementById("confirmation");
+    const confirmationMessage = document.getElementById("confirmationMessage");
+
+    processButton.addEventListener("click", function() {
+      // Gather selected creative rows and their individual industry selections
+      const rows = resultsBody.querySelectorAll("tr");
+      let processedItems = [];
+      rows.forEach(row => {
+        const checkbox = row.querySelector("input[type='checkbox']");
+        if (checkbox && checkbox.checked) {
+          const industryValue = row.cells[6].querySelector("select").value;
+          const subIndustryValue = row.cells[7].querySelector("input").value;
+          processedItems.push({
+            houseId: row.cells[1].textContent,
+            industry: industryValue,
+            subIndustry: subIndustryValue
+          });
+        }
+      });
+      if (processedItems.length === 0) {
+        alert("Please select at least one creative for processing.");
+        return;
+      }
+      // Get the selected server endpoints (multiple selection)
+      const serverEndpointSelect = document.getElementById("serverEndpoint");
+      const selectedServerEndpoints = Array.from(serverEndpointSelect.selectedOptions).map(option => option.value);
+      if (selectedServerEndpoints.length === 0) {
+        alert("Please select at least one Server Endpoint.");
+        return;
+      }
+      // Simulate processing and display confirmation message
+      let details = processedItems.map(item => {
+        return `HouseId: ${item.houseId}, Industry: ${item.industry || "N/A"}${item.subIndustry ? " (" + item.subIndustry + ")" : ""}`;
+      }).join("<br>");
+
+      confirmationMessage.innerHTML = `
+        Selected creative has been processed for Broadcast File Creative.<br>
+        <strong>Server Endpoints:</strong> ${selectedServerEndpoints.join(", ")}<br>
+        <strong>Processed Items:</strong><br>${details}
+      `;
+      confirmation.classList.remove("hidden");
+    });
+  </script>
+
+</body>
+</html>

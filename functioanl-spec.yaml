@@ -1,0 +1,28 @@
+---
+Outside-Creative:
+  - name: "Outside-Creative"
+    functions:
+    file: "Input file field"
+    type: "file"
+    properties:
+      format:
+        type:
+          - mov
+          - mp4
+        description: "Format of the Outside Creative file"
+      metatdata:
+        type: "string"
+        description: "Description of the Outside Creative"
+      type:
+        type: "string"
+        description: "Type of the Outside Creative"
+      properties:
+        type: "object"
+        description: "Properties of the Outside Creative"
+        properties:
+          name:
+            type: "string"
+            description: "Name of the Property"
+          value:
+            type: "string"
+            description: "Value of the Property"
