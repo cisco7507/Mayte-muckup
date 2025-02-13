@@ -1,4 +1,4 @@
-name: Build Windows Binary
+name: Build and Release Windows Binary
 
 on:
   push:
@@ -24,11 +24,15 @@ jobs:
       - name: Build Executable with PyInstaller
         run: |
           pyinstaller --onefile time-check.py
-          # Optionally, list the dist folder contents to confirm build
           dir dist
 
-      - name: Upload Executable Artifact
-        uses: actions/upload-artifact@v4
+      # Create a GitHub release and upload the executable as an asset.
+      - name: Create GitHub Release and Upload Asset
+        id: create_release
+        uses: ncipollo/release-action@v4
         with:
-          name: time-check-exe
-          path: dist\time-check.exe
+          tag: v1.0.${{ github.run_number }}
+          name: "Release v1.0.${{ github.run_number }}"
+          draft: false
+          prerelease: false
+          files: dist/time-check.exe
