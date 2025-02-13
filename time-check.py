@@ -85,7 +85,7 @@ if __name__ == '__main__':
         if result is None:
             print("Timer rejected: deviation exceeds tolerance.")
         else:
-            print(f"Closest legal time: {result}")
+            print(f"{result}")
     except ValueError as e:
         print(f"Error: {e}")
 
