@@ -1,25 +1,24 @@
 import argparse
+import sys
 
 def parse_time(time_str):
     """
     Parse a time string in the format hh:mm:ss.ms into total seconds.
-    
+
     Parameters:
         time_str (str): Time in "hh:mm:ss.ms" format.
-    
+
     Returns:
         float: Total seconds.
-    
+
     Raises:
         ValueError: If the input format is incorrect.
     """
-    # Expect the format to be hh:mm:ss.ms
     parts = time_str.split(':')
     if len(parts) != 3:
         raise ValueError("Time format must be hh:mm:ss.ms")
     
     hours_str, minutes_str, sec_ms_str = parts
-    # Split the seconds and milliseconds by the dot
     sec_parts = sec_ms_str.split('.')
     if len(sec_parts) != 2:
         raise ValueError("Seconds and milliseconds should be separated by a '.'")
@@ -42,12 +41,12 @@ def get_closest_legal_time(time_str, legal_times, tolerance=0.6):
     Compare the input time (converted to seconds) with a list of legal times.
     If the absolute difference between the input time and the closest legal time
     is within the tolerance, return that legal time. Otherwise, return None.
-    
+
     Parameters:
         time_str (str): Time in "hh:mm:ss.ms" format.
         legal_times (list of float): Predefined legal times (in seconds).
         tolerance (float): Maximum allowed deviation in seconds.
-        
+
     Returns:
         float or None: The closest legal time if within tolerance; otherwise None.
     """
@@ -67,27 +66,20 @@ def get_closest_legal_time(time_str, legal_times, tolerance=0.6):
         return None
 
 
-# ------------------
-# Main functionality
-# ------------------
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description="Evaluate a time value (hh:mm:ss.ms) against legal times."
-    )
-    parser.add_argument("time", help="Time in hh:mm:ss.ms format")
-    args = parser.parse_args()
+def seconds_to_hms(seconds):
+    """
+    Convert seconds (an integer) into a string in hh:mm:ss format.
 
-    # Predefined legal times in seconds.
-    legal_times = [5, 10, 15, 30, 60, 90, 120]
-    
-    try:
-        result = get_closest_legal_time(args.time, legal_times)
-        if result is None:
-            print("Timer rejected: deviation exceeds tolerance.")
-        else:
-            print(f"{result}")
-    except ValueError as e:
-        print(f"Error: {e}")
+    Parameters:
+        seconds (int): The seconds value to convert.
+
+    Returns:
+        str: The time formatted as hh:mm:ss.
+    """
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    secs = seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 
 # --------------
@@ -109,30 +101,62 @@ class TestTimeComparison(unittest.TestCase):
         self.assertEqual(get_closest_legal_time("00:02:00.000", self.legal_times), 120)
     
     def test_within_tolerance(self):
-        # Within tolerance (≤ 0.6 seconds deviation)
-        self.assertEqual(get_closest_legal_time("00:00:05.500", self.legal_times), 5)    # 0.5 sec off from 5
-        self.assertEqual(get_closest_legal_time("00:00:10.600", self.legal_times), 10)   # exactly 0.6 sec off from 10
-        self.assertEqual(get_closest_legal_time("00:00:15.500", self.legal_times), 15)   # 0.5 sec off from 15
-        self.assertEqual(get_closest_legal_time("00:00:30.500", self.legal_times), 30)   # 0.5 sec off from 30
-        self.assertEqual(get_closest_legal_time("00:01:00.500", self.legal_times), 60)   # 0.5 sec off from 60
-        self.assertEqual(get_closest_legal_time("00:01:30.500", self.legal_times), 90)   # 0.5 sec off from 90
-        self.assertEqual(get_closest_legal_time("00:02:00.500", self.legal_times), 120)  # 0.5 sec off from 120
+        self.assertEqual(get_closest_legal_time("00:00:05.500", self.legal_times), 5)
+        self.assertEqual(get_closest_legal_time("00:00:10.600", self.legal_times), 10)
+        self.assertEqual(get_closest_legal_time("00:00:15.500", self.legal_times), 15)
+        self.assertEqual(get_closest_legal_time("00:00:30.500", self.legal_times), 30)
+        self.assertEqual(get_closest_legal_time("00:01:00.500", self.legal_times), 60)
+        self.assertEqual(get_closest_legal_time("00:01:30.500", self.legal_times), 90)
+        self.assertEqual(get_closest_legal_time("00:02:00.500", self.legal_times), 120)
     
     def test_outside_tolerance(self):
-        # Outside tolerance (> 0.6 sec deviation)
-        self.assertIsNone(get_closest_legal_time("00:00:05.700", self.legal_times))   # 0.7 sec off from 5
-        self.assertIsNone(get_closest_legal_time("00:00:10.700", self.legal_times))   # 0.7 sec off from 10
-        self.assertIsNone(get_closest_legal_time("00:00:15.700", self.legal_times))   # 0.7 sec off from 15
-        self.assertIsNone(get_closest_legal_time("00:00:30.700", self.legal_times))   # 0.7 sec off from 30
-        self.assertIsNone(get_closest_legal_time("00:01:00.700", self.legal_times))   # 0.7 sec off from 60
-        self.assertIsNone(get_closest_legal_time("00:01:30.700", self.legal_times))   # 0.7 sec off from 90
-        self.assertIsNone(get_closest_legal_time("00:02:00.700", self.legal_times))   # 0.7 sec off from 120
+        self.assertIsNone(get_closest_legal_time("00:00:05.700", self.legal_times))
+        self.assertIsNone(get_closest_legal_time("00:00:10.700", self.legal_times))
+        self.assertIsNone(get_closest_legal_time("00:00:15.700", self.legal_times))
+        self.assertIsNone(get_closest_legal_time("00:00:30.700", self.legal_times))
+        self.assertIsNone(get_closest_legal_time("00:01:00.700", self.legal_times))
+        self.assertIsNone(get_closest_legal_time("00:01:30.700", self.legal_times))
+        self.assertIsNone(get_closest_legal_time("00:02:00.700", self.legal_times))
     
     def test_invalid_format(self):
         with self.assertRaises(ValueError):
             parse_time("00:00:10")  # Missing the '.ms' part
 
-# Note:
-# To run the unit tests, use the command:
-#     python -m unittest <filename>
-# This ensures that the main argument-parsing code is not executed during testing.
+    def test_seconds_to_hms(self):
+        self.assertEqual(seconds_to_hms(5), "00:00:05")
+        self.assertEqual(seconds_to_hms(10), "00:00:10")
+        self.assertEqual(seconds_to_hms(15), "00:00:15")
+        self.assertEqual(seconds_to_hms(30), "00:00:30")
+        self.assertEqual(seconds_to_hms(60), "00:01:00")
+        self.assertEqual(seconds_to_hms(90), "00:01:30")
+        self.assertEqual(seconds_to_hms(120), "00:02:00")
+
+
+# ------------------
+# Main functionality
+# ------------------
+if __name__ == '__main__':
+    # If the user passes the "--test" flag, run the unit tests.
+    if "--test" in sys.argv:
+        sys.argv.remove("--test")
+        unittest.main()
+    else:
+        parser = argparse.ArgumentParser(
+            description="Evaluate a time value (hh:mm:ss.ms) against legal times."
+        )
+        parser.add_argument("time", help="Time in hh:mm:ss.ms format")
+        args = parser.parse_args()
+
+        # Predefined legal times in seconds.
+        legal_times = [5, 10, 15, 30, 60, 90, 120]
+    
+        try:
+            result = get_closest_legal_time(args.time, legal_times)
+            if result is None:
+                print("Timer rejected: deviation exceeds tolerance.")
+            else:
+                # Append the converted seconds (hh:mm:ss) after a "/"
+                print(f"Closest legal time: {result}/{seconds_to_hms(result)}")
+        except ValueError as e:
+            print(f"Error: {e}")
+            
