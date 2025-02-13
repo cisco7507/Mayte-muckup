@@ -6,10 +6,8 @@ on:
       - main
   pull_request:
 
-# Grant the job explicit permission to write releases and repository contents.
 permissions:
   contents: write
-  releases: write
 
 jobs:
   build:
@@ -39,7 +37,6 @@ jobs:
           name: "Release v1.0.${{ github.run_number }}"
           draft: false
           prerelease: false
-          # Use 'artifacts' (or 'artifact') instead of 'files'
           artifacts: dist/time-check.exe
           generateReleaseNotes: false
           makeLatest: legacy
