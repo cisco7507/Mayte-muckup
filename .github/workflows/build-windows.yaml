@@ -6,6 +6,11 @@ on:
       - main
   pull_request:
 
+# Grant the job explicit permission to write releases and repository contents.
+permissions:
+  contents: write
+  releases: write
+
 jobs:
   build:
     runs-on: windows-2019
@@ -26,7 +31,6 @@ jobs:
           pyinstaller --onefile time-check.py
           dir dist
 
-      # Create a GitHub release and upload the executable as an asset.
       - name: Create GitHub Release and Upload Asset
         id: create_release
         uses: ncipollo/release-action@v1
@@ -35,4 +39,7 @@ jobs:
           name: "Release v1.0.${{ github.run_number }}"
           draft: false
           prerelease: false
-          files: dist/time-check.exe
+          # Use 'artifacts' (or 'artifact') instead of 'files'
+          artifacts: dist/time-check.exe
+          generateReleaseNotes: false
+          makeLatest: legacy
